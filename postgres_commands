@@ -1,0 +1,6 @@
+-- Grant usage and create privileges on the public schema
+GRANT USAGE ON SCHEMA public TO mysite_user;
+GRANT CREATE ON SCHEMA public TO mysite_user;
+
+-- Optionally, grant all privileges on all tables in the public schema
+GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO mysite_user;

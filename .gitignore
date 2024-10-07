@@ -1,0 +1,6 @@
+.env
+env_3_8_13/
+*.pyc
+__pycache__/
+db.sqlite3
+    
