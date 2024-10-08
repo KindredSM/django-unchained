@@ -1,55 +1,78 @@
 import requests
 from django.conf import settings
-from .models import Question
+from .models import Question, Choice, AirtableToken
+from django.utils.dateparse import parse_datetime
 
-def get_airtable_client(request):
-    token = request.session.get('airtable_token')
-    if not token:
+def get_airtable_headers(request):
+    user = request.user
+    try:
+        token = AirtableToken.objects.get(user=user)
+        if token.is_expired():
+            pass
+        return {
+            'Authorization': f"Bearer {token.access_token}",
+            'Content-Type': 'application/json'
+        }
+    except AirtableToken.DoesNotExist:
         raise Exception("Airtable token not found. Please authenticate first.")
-    return token['access_token']
 
 def sync_questions_to_airtable(request):
-    access_token = get_airtable_client(request)
-    headers = {
-        'Authorization': f'Bearer {access_token}',
-        'Content-Type': 'application/json',
-    }
-    url = f'https://api.airtable.com/v0/{settings.AIRTABLE_BASE_ID}/{settings.AIRTABLE_TABLE_NAME}'
-    
-    questions = Question.objects.all()
-    for question in questions:
+    headers = get_airtable_headers(request)
+    questions_url = f"https://api.airtable.com/v0/{settings.AIRTABLE_BASE_ID}/{settings.AIRTABLE_QUESTIONS_TABLE}"
+
+    for question in Question.objects.all():
         data = {
-            'fields': {
-                'Question': question.question_text,
-                'Date Published': question.pub_date.isoformat()
+            "fields": {
+                "Question Text": question.question_text,
             }
         }
-        response = requests.post(url, json=data, headers=headers)
+        if question.pub_date:
+            data["fields"]["Publication Date"] = question.pub_date.strftime("%Y-%m-%d")
+        
+        response = requests.post(questions_url, json=data, headers=headers)
         if response.status_code != 200:
-            print(f"Failed to create record for question {question.id}: {response.text}")
-        else:
-            print(f"Successfully synced question {question.id} to Airtable")
+            raise Exception(f"Failed to sync question: {response.text}")
 
 def sync_questions_from_airtable(request):
-    access_token = get_airtable_client(request)
-    headers = {
-        'Authorization': f'Bearer {access_token}',
-    }
-    url = f'https://api.airtable.com/v0/{settings.AIRTABLE_BASE_ID}/{settings.AIRTABLE_TABLE_NAME}'
+    headers = get_airtable_headers(request)
+    questions_url = f"https://api.airtable.com/v0/{settings.AIRTABLE_BASE_ID}/{settings.AIRTABLE_QUESTIONS_TABLE}"
     
-    response = requests.get(url, headers=headers)
+    response = requests.get(questions_url, headers=headers)
     if response.status_code != 200:
-        raise Exception(f"Failed to fetch records from Airtable: {response.text}")
+        raise Exception(f"Failed to fetch questions: {response.text}")
     
     data = response.json()
-    records = data.get('records', [])
-    for record in records:
-        fields = record['fields']
-        question_text = fields.get('Question')
-        pub_date = fields.get('Date Published')
-        if question_text and pub_date:
+    for record in data.get('records', []):
+        question_text = record['fields'].get('Question Text')
+        pub_date_str = record['fields'].get('Publication Date')
+        if question_text:
+            pub_date = parse_datetime(pub_date_str) if pub_date_str else None
             Question.objects.update_or_create(
                 question_text=question_text,
                 defaults={'pub_date': pub_date}
             )
-    return len(records)
+        else:
+            print(f"Skipping record with empty question text: {record}")
+
+def sync_questions_from_airtable(request):
+    headers = get_airtable_headers(request)
+    questions_url = f"https://api.airtable.com/v0/{settings.AIRTABLE_BASE_ID}/{settings.AIRTABLE_QUESTIONS_TABLE}"
+
+    response = requests.get(questions_url, headers=headers)
+    if response.status_code != 200:
+        raise Exception(f"Failed to fetch questions: {response.text}")
+
+    questions_data = response.json().get('records', [])
+    for question_record in questions_data:
+        question_text = question_record['fields'].get('Question Text')
+        choices_text = question_record['fields'].get('Choices', '')
+
+        question, created = Question.objects.update_or_create(
+            question_text=question_text,
+
+        )
+
+        # Clear existing choices and create new ones
+        question.choice_set.all().delete()
+        for choice_text in choices_text.split(','):
+            Choice.objects.create(question=question, choice_text=choice_text.strip())

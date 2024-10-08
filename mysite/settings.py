@@ -12,6 +12,8 @@ https://docs.djangoproject.com/en/3.2/ref/settings/
 
 from pathlib import Path
 from decouple import config
+from dotenv import load_dotenv
+import os
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -29,25 +31,24 @@ DEBUG = True
 ALLOWED_HOSTS = [
     '127.0.0.1',  # localhost
     'localhost',
-    '16e2-188-30-79-240.ngrok-free.app',  # Replace with your current ngrok URL
+    '.ngrok-free.app',  # Allow all ngrok subdomains
 ]
 
 # Add CSRF_TRUSTED_ORIGINS
 CSRF_TRUSTED_ORIGINS = [
-    'https://16e2-188-30-79-240.ngrok-free.app',  # Replace with your current ngrok URL
+    'https://*.ngrok-free.app',  # Allow all ngrok subdomains
 ]
 
 # Application definition
 
 INSTALLED_APPS = [
-    'django.contrib.admin',
     'django.contrib.auth',
+    'django.contrib.admin',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
-    'django.contrib.staticfiles',
-    'polls',
     'django.contrib.sites',
+    'polls',
     'allauth',
     'allauth.account',
     'allauth.socialaccount',
@@ -134,13 +135,11 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/3.2/howto/static-files/
 
-STATIC_URL = '/static/'
-STATICFILES_DIRS = [BASE_DIR / 'static']
-
 # Default primary key field type
 # https://docs.djangoproject.com/en/3.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
 
 AUTHENTICATION_BACKENDS = [
     'django.contrib.auth.backends.ModelBackend',
@@ -159,11 +158,13 @@ AIRTABLE_REDIRECT_URI = config('AIRTABLE_REDIRECT_URI')
 AIRTABLE_AUTH_URL = 'https://airtable.com/oauth2/v1/authorize'
 AIRTABLE_TOKEN_URL = 'https://airtable.com/oauth2/v1/token'
 AIRTABLE_SCOPES = ['data.records:read', 'data.records:write']
-AIRTABLE_BASE_ID = config('AIRTABLE_BASE_ID')
+AIRTABLE_BASE_ID = os.getenv('AIRTABLE_BASE_ID')
 AIRTABLE_TABLE_NAME = config('AIRTABLE_TABLE_NAME')
+
+AIRTABLE_QUESTIONS_TABLE = os.getenv('AIRTABLE_QUESTIONS_TABLE')
+AIRTABLE_CHOICES_TABLE = 'Choices'
 
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 SECURE_SSL_REDIRECT = True
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True
-
