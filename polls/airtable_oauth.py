@@ -5,7 +5,7 @@ from django.urls import reverse
 
 def get_airtable_auth_url(request):
     oauth = OAuth2Session(
-        settings.AIRTABLE_CLIENT_ID,
+        client_id=settings.AIRTABLE_CLIENT_ID,
         redirect_uri=request.build_absolute_uri(reverse('polls:airtable_callback')),
         scope=['data.records:read', 'data.records:write']
     )
@@ -15,8 +15,8 @@ def get_airtable_auth_url(request):
 
 def get_airtable_token(request):
     oauth = OAuth2Session(
-        settings.AIRTABLE_CLIENT_ID,
-        state=request.session['oauth_state'],
+        client_id=settings.AIRTABLE_CLIENT_ID,
+        state=request.session.get('oauth_state'),
         redirect_uri=request.build_absolute_uri(reverse('polls:airtable_callback'))
     )
     token = oauth.fetch_token(

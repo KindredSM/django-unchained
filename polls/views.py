@@ -5,6 +5,7 @@ from .forms import QuestionForm, ChoiceForm
 from django.contrib.auth.decorators import login_required
 from .airtable_utils import sync_questions_to_airtable, sync_questions_from_airtable
 from .airtable_oauth import get_airtable_auth_url, get_airtable_token
+from django.conf import settings
 
 def index(request):
     latest_question_list = Question.objects.order_by('-pub_date')
@@ -67,7 +68,7 @@ def sync_to_airtable(request):
 
 @login_required
 def sync_from_airtable(request):
-    sync_questions_from_airtable(request.user)
+    sync_questions_from_airtable(request)
     return redirect('polls:index')
 
 def airtable_login(request):
@@ -75,6 +76,9 @@ def airtable_login(request):
     return redirect(auth_url)
 
 def airtable_callback(request):
-    token = get_airtable_token(request)
-    request.session['airtable_token'] = token
-    return redirect('polls:index')
+    try:
+        token = get_airtable_token(request)
+        request.session['airtable_token'] = token
+        return redirect('polls:index')
+    except Exception as e:
+        return render(request, 'polls/error.html', {'error': str(e)})

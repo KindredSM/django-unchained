@@ -21,11 +21,13 @@ def sync_questions_to_airtable(request):
         data = {
             'fields': {
                 'Question': question.question_text,
-                'Date Published': str(question.pub_date)
+                'Date Published': question.pub_date.isoformat()
             }
         }
-        response = requests.post(url, json=data, headers=headers)
-        response.raise_for_status()
+        response = requests.post(url, headers=headers, json=data)
+        if response.status_code != 201:
+            # Handle error (e.g., log it)
+            print(f"Failed to create record for question {question.id}: {response.text}")
 
 def sync_questions_from_airtable(request):
     access_token = get_airtable_client(request)
