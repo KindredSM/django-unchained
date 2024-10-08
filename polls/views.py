@@ -2,6 +2,9 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.utils import timezone
 from .models import Question, Choice
 from .forms import QuestionForm, ChoiceForm
+from django.contrib.auth.decorators import login_required
+from .airtable_utils import sync_questions_to_airtable, sync_questions_from_airtable
+from .airtable_oauth import get_airtable_auth_url, get_airtable_token
 
 def index(request):
     latest_question_list = Question.objects.order_by('-pub_date')
@@ -56,3 +59,22 @@ def add_choice(request, question_id):
     else:
         form = ChoiceForm()
     return render(request, 'polls/choice_form.html', {'form': form, 'question': question})
+
+@login_required
+def sync_to_airtable(request):
+    sync_questions_to_airtable(request)
+    return redirect('polls:index')
+
+@login_required
+def sync_from_airtable(request):
+    sync_questions_from_airtable(request.user)
+    return redirect('polls:index')
+
+def airtable_login(request):
+    auth_url = get_airtable_auth_url(request)
+    return redirect(auth_url)
+
+def airtable_callback(request):
+    token = get_airtable_token(request)
+    request.session['airtable_token'] = token
+    return redirect('polls:index')

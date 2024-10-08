@@ -1,3 +1,13 @@
+{% if user.is_authenticated %}
+    <p>Welcome, {{ user.username }}! <a href="{% url 'account_logout' %}">Logout</a></p>
+    <a href="{% url 'polls:sync_to_airtable' %}">Sync to Airtable</a>
+    <a href="{% url 'polls:sync_from_airtable' %}">Sync from Airtable</a>
+{% else %}
+    <p><a href="{% url 'account_login' %}">Login</a> or <a href="{% url 'account_signup' %}">Sign Up</a></p>
+{% endif %}
+
+<a href="{% url 'polls:airtable_login' %}">Connect Airtable</a>
+
 <h1>All Questions</h1>
 <a href="{% url 'polls:create_question' %}">Create New Question</a>
 <ul>

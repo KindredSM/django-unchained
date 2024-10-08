@@ -26,4 +26,5 @@ urlpatterns = [
     path('', home, name='home'),  # Add this line
     path('admin/', admin.site.urls),
     path('polls/', include('polls.urls')),
+    path('accounts/', include('allauth.urls')),
 ]
