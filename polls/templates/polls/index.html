@@ -6,7 +6,15 @@
     <p><a href="{% url 'account_login' %}">Login</a> or <a href="{% url 'account_signup' %}">Sign Up</a></p>
 {% endif %}
 
-<a href="{% url 'polls:airtable_login' %}">Connect Airtable</a>
+{% if messages %}
+<ul class="messages">
+    {% for message in messages %}
+    <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
+    {% endfor %}
+</ul>
+{% endif %}
+
+<a href="{% url 'polls:initiate_airtable_oauth' %}">Connect Airtable</a>
 
 <h1>All Questions</h1>
 <a href="{% url 'polls:create_question' %}">Create New Question</a>

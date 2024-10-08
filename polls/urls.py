@@ -11,6 +11,7 @@ urlpatterns = [
     path('<int:question_id>/add_choice/', views.add_choice, name='add_choice'),
     path('sync-to-airtable/', views.sync_to_airtable, name='sync_to_airtable'),
     path('sync-from-airtable/', views.sync_from_airtable, name='sync_from_airtable'),
-    path('airtable-login/', views.airtable_login, name='airtable_login'),
-    path('airtable-callback/', views.airtable_callback, name='airtable_callback'),
+    path('airtable/connect/', views.initiate_airtable_oauth, name='initiate_airtable_oauth'),
+    path('airtable/callback/', views.airtable_oauth_callback, name='airtable_oauth_callback'),
+    path('airtable/disconnect/', views.airtable_disconnect, name='airtable_disconnect'),
 ]
