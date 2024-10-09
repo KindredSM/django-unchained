@@ -18,7 +18,7 @@ import os
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-
+load_dotenv()
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/3.2/howto/deployment/checklist/
 
@@ -31,7 +31,8 @@ DEBUG = True
 ALLOWED_HOSTS = [
     '127.0.0.1',  # localhost
     'localhost',
-    '.ngrok-free.app',  # Allow all ngrok subdomains
+    '.ngrok-free.app',
+    '68.183.35.229',  # Allow all ngrok subdomains
 ]
 
 # Add CSRF_TRUSTED_ORIGINS

@@ -1,0 +1,99 @@
+---
+- hosts: all
+  become: yes
+  vars:
+    app_name: mysite
+    app_dir: /var/www/{{ app_name }}
+    venv_dir: "{{ app_dir }}/venv"
+    django_settings: "{{ app_name }}.settings"
+    domain: "68.183.35.229"
+
+  tasks:
+    - name: Update apt cache
+      apt: update_cache=yes
+
+    - name: Install required packages
+      apt:
+        name:
+          - python3
+          - python3-pip
+          - python3-venv
+          - nginx
+          - postgresql
+          - postgresql-contrib
+          - libpq-dev
+        state: present
+
+    - name: Create app directory
+      file:
+        path: "{{ app_dir }}"
+        state: directory
+        owner: www-data
+        group: www-data
+
+    - name: Set Git safe directory
+      become: yes
+      command: git config --global --add safe.directory {{ app_dir }}
+
+    - name: Clone the repository
+      git:
+        repo: https://github.com/KindredSM/django-unchained.git
+        dest: "{{ app_dir }}"
+        version: master
+        force: yes
+
+    - name: Create virtual environment
+      command: python3 -m venv {{ venv_dir }}
+      args:
+        creates: "{{ venv_dir }}"
+
+    - name: Install requirements
+      pip:
+        requirements: "{{ app_dir }}/requirements.txt"
+        virtualenv: "{{ venv_dir }}"
+
+    - name: Create .env file
+      template:
+        src: .env.j2
+        dest: "{{ app_dir }}/.env"
+
+    - name: Run migrations
+      django_manage:
+        command: migrate
+        app_path: "{{ app_dir }}"
+        virtualenv: "{{ venv_dir }}"
+
+    - name: Collect static files
+      django_manage:
+        command: collectstatic
+        app_path: "{{ app_dir }}"
+        virtualenv: "{{ venv_dir }}"
+
+    - name: Configure Nginx
+      template:
+        src: nginx.conf.j2
+        dest: /etc/nginx/sites-available/{{ app_name }}
+      notify: Restart Nginx
+
+    - name: Enable Nginx site
+      file:
+        src: /etc/nginx/sites-available/{{ app_name }}
+        dest: /etc/nginx/sites-enabled/{{ app_name }}
+        state: link
+      notify: Restart Nginx
+
+    - name: Configure Gunicorn
+      template:
+        src: gunicorn.service.j2
+        dest: /etc/systemd/system/gunicorn.service
+      notify: Restart Gunicorn
+
+  handlers:
+    - name: Restart Nginx
+      service: name=nginx state=restarted
+
+    - name: Restart Gunicorn
+      systemd:
+        name: gunicorn
+        state: restarted
+        daemon_reload: yes
