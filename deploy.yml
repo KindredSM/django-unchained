@@ -8,8 +8,9 @@
     app_name: mysite
     app_user: "django_user"
     base_dir: "/home/{{ app_user }}"
-    app_dir: "{{ base_dir }}/mysite"
-    venv_dir: "{{ app_dir }}/venv"
+    project_dir: "{{ base_dir }}/django-unchained"
+    app_dir: "{{ project_dir }}/mysite"
+    venv_dir: "{{ project_dir }}/env_3_8_13"
     django_settings: "{{ app_name }}.settings"
     domain: "68.183.35.229"
 
@@ -33,7 +34,7 @@
       user:
         name: "{{ app_user }}"
         state: present
-        createhome: yes
+        shell: /bin/bash
       become: yes
 
     - name: Ensure base directory exists
@@ -45,92 +46,26 @@
         mode: "0755"
       become: yes
 
-    - name: Ensure app directory exists
+    - name: Ensure project directory exists
       file:
-        path: "{{ app_dir }}"
+        path: "{{ project_dir }}"
         state: directory
         owner: "{{ app_user }}"
         group: "{{ app_user }}"
         mode: "0755"
-      become: yes
-
-    - name: Set correct permissions for app directory
-      file:
-        path: "{{ app_dir }}"
-        state: directory
-        owner: "{{ app_user }}"
-        group: "{{ app_user }}"
-        mode: "0755"
-      become: yes
-
-    - name: Ensure correct permissions for app user
-      file:
-        path: "{{ base_dir }}"
-        owner: "{{ app_user }}"
-        group: "{{ app_user }}"
-        mode: "0755"
-        state: directory
-      become: yes
-
-    - name: Create .config directory for app user
-      file:
-        path: "{{ base_dir }}/.config"
-        owner: "{{ app_user }}"
-        group: "{{ app_user }}"
-        mode: "0755"
-        state: directory
-      become: yes
-
-    - name: Create custom temp directory
-      file:
-        path: /tmp/ansible-{{ app_user }}
-        state: directory
-        mode: "0755"
-        owner: "{{ app_user }}"
-        group: "{{ app_user }}"
-      become: yes
-
-    - name: Set environment variable for Ansible temp dir
-      set_fact:
-        ansible_remote_tmp: /tmp/ansible-{{ app_user }}
-
-    - name: Set Git safe directory for django_user
-      become: yes
-      become_user: "{{ app_user }}"
-      command: git config --global --add safe.directory {{ app_dir }}
-      args:
-        creates: /home/{{ app_user }}/.gitconfig
-
-    - name: Clone the repository
-      git:
-        repo: "https://github.com/KindredSM/django-unchained.git"
-        dest: "{{ app_dir }}"
-        version: master
-        force: yes
-      become: yes
-      become_user: "{{ app_user }}"
-
-    - name: Ensure correct ownership of app directory after clone
-      file:
-        path: "{{ app_dir }}"
-        owner: "{{ app_user }}"
-        group: "{{ app_user }}"
-        recurse: yes
       become: yes
 
     - name: Create virtual environment
-      become_user: "{{ app_user }}"
-      command: python3 -m venv {{ venv_dir }}
+      command: python3.8 -m venv {{ venv_dir }}
       args:
         creates: "{{ venv_dir }}"
+      become: yes
+      become_user: "{{ app_user }}"
 
     - name: Install requirements
-      become_user: "{{ app_user }}"
       pip:
-        requirements: "{{ app_dir }}/requirements.txt"
-        virtualenv: "{{ venv_dir }}"
-        virtualenv_python: python3
-        state: latest
+        requirements: /home/django_user/django-unchained/requirements.txt
+        virtualenv: /home/django_user/django-unchained/env_3_8_13
 
     - name: Install django-allauth
       become_user: "{{ app_user }}"
@@ -145,98 +80,7 @@
         dest: "{{ app_dir }}/.env"
         mode: "0600"
 
-    - name: Debug .env file
-      become_user: "{{ app_user }}"
-      command: cat {{ app_dir }}/.env
-      register: env_contents
-
-    - name: Print .env contents
-      debug:
-        var: env_contents.stdout_lines
-
-    - name: Run migrations
-      become_user: "{{ app_user }}"
-      django_manage:
-        command: migrate
-        app_path: "{{ app_dir }}"
-        virtualenv: "{{ venv_dir }}"
-
-    - name: Collect static files
-      become_user: "{{ app_user }}"
-      django_manage:
-        command: collectstatic
-        app_path: "{{ app_dir }}"
-        virtualenv: "{{ venv_dir }}"
-
-    - name: Configure Nginx
-      template:
-        src: nginx.conf.j2
-        dest: /etc/nginx/sites-available/{{ app_name }}
-      notify: Restart Nginx
-
-    - name: Enable Nginx site
-      file:
-        src: /etc/nginx/sites-available/{{ app_name }}
-        dest: /etc/nginx/sites-enabled/{{ app_name }}
-        state: link
-      notify: Restart Nginx
-
-    - name: Configure Gunicorn
-      template:
-        src: gunicorn.service.j2
-        dest: /etc/systemd/system/gunicorn.service
-      notify: Restart Gunicorn
-
-    - name: Disable Password Authentication
-      lineinfile:
-        dest: /etc/ssh/sshd_config
-        regexp: "^PasswordAuthentication"
-        line: "PasswordAuthentication no"
-        state: present
-      notify: Restart sshd
-
-    - name: Create PostgreSQL database
-      become: yes
-      become_user: postgres
-      postgresql_db:
-        name: "{{ db_name }}"
-        state: present
-
-    - name: Create PostgreSQL user
-      become: yes
-      become_user: postgres
-      postgresql_user:
-        name: "{{ db_user }}"
-        password: "{{ db_password }}"
-        role_attr_flags: CREATEDB
-
-    - name: Grant all privileges on database
-      become: yes
-      become_user: postgres
-      postgresql_privs:
-        type: database
-        database: "{{ db_name }}"
-        roles: "{{ db_user }}"
-        privs: ALL
-        state: present
-
-    - name: Ensure correct ownership of app directory
-      file:
-        path: "{{ app_dir }}"
-        owner: "{{ app_user }}"
-        group: "{{ app_user }}"
-        recurse: yes
-      become: yes
-
-  handlers:
-    - name: Restart Nginx
-      service: name=nginx state=restarted
-
-    - name: Restart Gunicorn
-      systemd:
-        name: gunicorn
-        state: restarted
-        daemon_reload: yes
-
-    - name: Restart sshd
-      service: name=sshd state=restarted
+    - name: Check if .env file exists
+      stat:
+        path: "{{ app_dir }}/.env"
+      register: env_file
