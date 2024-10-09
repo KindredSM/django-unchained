@@ -12,13 +12,11 @@ https://docs.djangoproject.com/en/3.2/ref/settings/
 
 from pathlib import Path
 from decouple import config
-from dotenv import load_dotenv
 import os
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-load_dotenv()
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/3.2/howto/deployment/checklist/
 
@@ -26,18 +24,20 @@ load_dotenv()
 SECRET_KEY = config('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
 ALLOWED_HOSTS = [
-    '127.0.0.1',  # localhost
+    '127.0.0.1', 
     'localhost',
     '.ngrok-free.app',
-    '68.183.35.229',  # Allow all ngrok subdomains
+    '68.183.35.229',  
 ]
 
-# Add CSRF_TRUSTED_ORIGINS
+
 CSRF_TRUSTED_ORIGINS = [
-    'https://*.ngrok-free.app',  # Allow all ngrok subdomains
+    'https://*.ngrok-free.app', 
+    'http://68.183.35.229',
+    'https://68.183.35.229',
 ]
 
 # Application definition

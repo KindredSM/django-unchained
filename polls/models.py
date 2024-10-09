@@ -2,7 +2,6 @@ from django.utils import timezone
 from django.db import models
 from django.contrib.auth.models import User
 
-
 class Question(models.Model):
     question_text = models.CharField(max_length=200, null=False, blank=False)
     pub_date = models.DateTimeField('date published', null=True, blank=True)

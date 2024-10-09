@@ -6,3 +6,5 @@ pytz==2024.2
 sqlparse==0.5.1
 typing_extensions==4.12.2
 python-dotenv==1.0.1
+django-allauth==0.54.0
+requests==2.31.0
