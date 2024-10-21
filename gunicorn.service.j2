@@ -12,7 +12,7 @@ ExecStart=/home/django_user/django-unchained/env_3_8_13/bin/gunicorn \
           --error-logfile - \
           --log-level debug \
           --workers 3 \
-          --bind unix:/run/gunicorn.sock \
+          --bind unix:/home/django_user/django-unchained/gunicorn.sock \
           mysite.wsgi:application
 
 [Install]
